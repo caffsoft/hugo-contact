@@ -63,16 +63,17 @@ func sendEmail(name, email, message string) error {
 	smtpPort := os.Getenv("SMTP_PORT")
 	smtpUser := os.Getenv("SMTP_USERNAME")
 	smtpPass := os.Getenv("SMTP_PASSWORD")
+	smtpSender := os.Getenv("SMTP_SENDER")
 	recipient := os.Getenv("RECIPIENT_EMAIL")
 
-	if smtpHost == "" || smtpPort == "" || smtpUser == "" || smtpPass == "" || recipient == "" {
+	if smtpHost == "" || smtpPort == "" || smtpUser == "" || smtpPass == "" || smtpSender == "" || recipient == "" {
 		return fmt.Errorf("missing required SMTP environment variables")
 	}
 
 	body := fmt.Sprintf("From: %s\nTo: %s\nSubject: Contact Form Submission\n\nName: %s\nEmail: %s\nMessage:\n%s",
-		smtpUser, recipient, name, email, message)
+		smtpSender, recipient, name, email, message)
 	auth := smtp.PlainAuth("", smtpUser, smtpPass, smtpHost)
-	return smtp.SendMail(smtpHost+":"+smtpPort, auth, smtpUser, []string{recipient}, []byte(body))
+	return smtp.SendMail(smtpHost+":"+smtpPort, auth, smtpSender, []string{recipient}, []byte(body))
 }
 
 func contactHandler(w http.ResponseWriter, r *http.Request) {
