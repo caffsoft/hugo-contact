@@ -22,6 +22,7 @@ This is a small, self-hosted Go application that acts as a (mostly) drop-in repl
 | `SMTP_PORT`         | SMTP port (usually `587`)                                                                                                                   |
 | `SMTP_USERNAME`     | SMTP login username                                                                                                                         |
 | `SMTP_PASSWORD`     | SMTP login password or app key                                                                                                              |
+| `SMTP_SENDER`       | SMTP sender, may need to be different from SMTP_USERNAME for certain providers                                                              |
 | `RECIPIENT_EMAIL`   | Email address to receive form submissions                                                                                                   |
 | `PORT`              | Port to run the server on (default: `8080`)                                                                                                 |
 | `CORS_ALLOW_ORIGIN` | CORS allowed origin (default: `*`)                                                                                                          |
@@ -29,10 +30,10 @@ This is a small, self-hosted Go application that acts as a (mostly) drop-in repl
 
 ## Example HTML Form
 
-Note that the script needs to be *only* on the pages that have forms and not loaded on the entire site, and should be loaded after the form. 
-This script will load a signed timestamp-based token that will need to be included in the form that needs to be included in the submission. 
+Note that the script needs to be *only* on the pages that have forms and not loaded on the entire site, and should be loaded after the form.
+This script will load a signed timestamp-based token that will need to be included in the form that needs to be included in the submission.
 It expires in 15 minutes. This could create some false positives, for example, if a visitor went to the site and took more than 15 minutes to make their comment.  
-The time range can be adjusted in the code, or you could warn them on the page that the form expires in 15 minutes. 
+The time range can be adjusted in the code, or you could warn them on the page that the form expires in 15 minutes.
 It also doesn't allow it to be posted within 2 seconds, as that will most likely be a bot.   
 
 ```html
@@ -70,6 +71,7 @@ SMTP_HOST=smtp.example.com \
 SMTP_PORT=587 \
 SMTP_USERNAME=your@domain.com \
 SMTP_PASSWORD=yourpassword \
+SMTP_USERNAME=your@other-domain.com \
 RECIPIENT_EMAIL=you@domain.com \
 PORT=8080 \
 CORS_ALLOW_ORIGIN=https://yourhugo.site \
