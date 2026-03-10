@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"log/slog"
@@ -69,10 +70,47 @@ func sendEmail(name, email, message string) error {
 		return fmt.Errorf("missing required SMTP environment variables")
 	}
 
+	addr := smtpHost + ":" + smtpPort
 	body := fmt.Sprintf("From: %s\nTo: %s\nSubject: Contact Form Submission\n\nName: %s\nEmail: %s\nMessage:\n%s",
 		smtpUser, recipient, name, email, message)
+
+	// Port 465 uses implicit TLS (SMTPS); smtp.SendMail only supports STARTTLS
+	// so we must dial TLS directly and build the SMTP client ourselves.
+	if smtpPort == "465" {
+		tlsCfg := &tls.Config{ServerName: smtpHost}
+		conn, err := tls.Dial("tcp", addr, tlsCfg)
+		if err != nil {
+			return fmt.Errorf("tls dial: %w", err)
+		}
+		client, err := smtp.NewClient(conn, smtpHost)
+		if err != nil {
+			return fmt.Errorf("smtp client: %w", err)
+		}
+		defer client.Close()
+
+		auth := smtp.PlainAuth("", smtpUser, smtpPass, smtpHost)
+		if err = client.Auth(auth); err != nil {
+			return fmt.Errorf("smtp auth: %w", err)
+		}
+		if err = client.Mail(smtpUser); err != nil {
+			return fmt.Errorf("smtp MAIL FROM: %w", err)
+		}
+		if err = client.Rcpt(recipient); err != nil {
+			return fmt.Errorf("smtp RCPT TO: %w", err)
+		}
+		wc, err := client.Data()
+		if err != nil {
+			return fmt.Errorf("smtp DATA: %w", err)
+		}
+		if _, err = fmt.Fprint(wc, body); err != nil {
+			return fmt.Errorf("smtp write body: %w", err)
+		}
+		return wc.Close()
+	}
+
+	// Port 587 / 25: use STARTTLS via smtp.SendMail
 	auth := smtp.PlainAuth("", smtpUser, smtpPass, smtpHost)
-	return smtp.SendMail(smtpHost+":"+smtpPort, auth, smtpUser, []string{recipient}, []byte(body))
+	return smtp.SendMail(addr, auth, smtpUser, []string{recipient}, []byte(body))
 }
 
 func contactHandler(w http.ResponseWriter, r *http.Request) {
