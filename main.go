@@ -158,15 +158,36 @@ func jsTokenHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(script))
 }
 
+var allowedOrigins []string
+
+func initAllowedOrigins() {
+	env := os.Getenv("CORS_ALLOW_ORIGIN")
+	if env == "" || env == "*" {
+		allowedOrigins = []string{"*"}
+		return
+	}
+	for _, o := range strings.Split(env, ",") {
+		o = strings.TrimSpace(o)
+		if o != "" {
+			allowedOrigins = append(allowedOrigins, o)
+		}
+	}
+}
+
+func isOriginAllowed(origin string) bool {
+	for _, o := range allowedOrigins {
+		if o == "*" || o == origin {
+			return true
+		}
+	}
+	return false
+}
+
 func checkAndSetCORSHeaders(w http.ResponseWriter, r *http.Request) bool {
 	origin := r.Header.Get("Origin")
-	allowedOrigin := os.Getenv("CORS_ALLOW_ORIGIN")
-	if allowedOrigin == "" {
-		allowedOrigin = "*"
-	}
 
 	// Block request if origin is not allowed
-	if origin != "" && allowedOrigin != "*" && origin != allowedOrigin {
+	if origin != "" && !isOriginAllowed(origin) {
 		return false
 	}
 
@@ -199,6 +220,9 @@ func main() {
 		}
 		logger.Info("Generated ephemeral TOKEN_SECRET for this runtime")
 	}
+
+	initAllowedOrigins()
+	logger.Info("Allowed CORS origins", slog.Any("origins", allowedOrigins))
 
 	// /f/contact endpoint is the Formspree-compatible POST endpoint
 	http.HandleFunc("/f/contact", contactHandler)
