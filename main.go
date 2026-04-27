@@ -69,8 +69,10 @@ func sendEmail(name, email, message string) error {
 		return fmt.Errorf("missing required SMTP environment variables")
 	}
 
-	body := fmt.Sprintf("From: %s\nTo: %s\nSubject: Contact Form Submission\n\nName: %s\nEmail: %s\nMessage:\n%s",
-		smtpUser, recipient, name, email, message)
+	headerSanitizer := strings.NewReplacer("\r", "", "\n", "")
+	replyTo := fmt.Sprintf("%s <%s>", headerSanitizer.Replace(name), headerSanitizer.Replace(email))
+	body := fmt.Sprintf("From: %s\nTo: %s\nReply-To: %s\nSubject: Contact Form Submission\n\nName: %s\nEmail: %s\nMessage:\n%s",
+		smtpUser, recipient, replyTo, name, email, message)
 	auth := smtp.PlainAuth("", smtpUser, smtpPass, smtpHost)
 	return smtp.SendMail(smtpHost+":"+smtpPort, auth, smtpUser, []string{recipient}, []byte(body))
 }
